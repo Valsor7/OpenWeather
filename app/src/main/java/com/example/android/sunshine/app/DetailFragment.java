@@ -40,7 +40,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     static final int COL_WEATHER_PRESSURE = 8;
     static final int COL_WEATHER_CONDITION_ID = 9;
 
-    private static final String[] FORECAST_COLUMNS = {
+    private static final String[] DETAIL_COLUMNS = {
             // In this case the id needs to be fully qualified with a table name, since
             // the content provider joins the location & weather tables in the background
             // (both have an _id column)
@@ -59,8 +59,6 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
     private static final String FORECAST_SHARE_HASHTAG = " #SunshineApp";
     private static final int DETAILS_LOADER = 1;
-    private String mForecastStr;
-    private TextView detailTv;
     private String shareForecast;
     private ShareActionProvider mShareActionProvider;
     private TextView dateTv;
@@ -74,6 +72,13 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     private ImageView weatherImage;
 
     public DetailFragment() {
+
+    }
+
+    @Override
+    public void setArguments(Bundle args) {
+        super.setArguments(args);
+        getLoaderManager().restartLoader(DETAILS_LOADER, args, this);
     }
 
     @Override
@@ -103,13 +108,13 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         windTv = (TextView) rootView.findViewById(R.id.detail_windTv);
         pressureTv = (TextView) rootView.findViewById(R.id.detail_pressureTv);
         descrTv = (TextView) rootView.findViewById(R.id.detail_descrTv);
-        // The detail Activity called via intent.  Inspect the intent for forecast data.
-        Intent intent = getActivity().getIntent();
-        if (intent != null) {
-            mForecastStr = intent.getDataString();
-        }
 
         return rootView;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
     }
 
     @Override
@@ -136,20 +141,49 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         return shareIntent;
     }
 
+//    public void onLocationChanged(){
+//        updateWeather();
+//        getLoaderManager().restartLoader(FORECAST_LOADER, null, this);
+//    }
+
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        Uri uri = Uri.parse(mForecastStr);
-        String order = WeatherContract.WeatherEntry.COLUMN_DATE + " ASC";
+//        Intent intent = getActivity().getIntent();
+//        if (intent == null || intent.getData() == null){
+//            Uri singleWeatherUri = WeatherContract.WeatherEntry.buildWeatherLocationWithDate(
+//                    Utility.getPreferredLocation(getActivity()),
+//                    System.currentTimeMillis());
+//            if (null != args){
+//                singleWeatherUri = Uri.parse(args.getString("forecast"));
+//            }
+//            return  new CursorLoader(getActivity(), singleWeatherUri, DETAIL_COLUMNS, null, null, null);
+//        } else {
+//            return new CursorLoader(getActivity(), intent.getData(), DETAIL_COLUMNS, null, null, null);
+//        }
 
+        Log.v(LOG_TAG, "In onCreateLoader");
+        Intent intent = getActivity().getIntent();
+        if (intent == null || intent.getData() == null) {
+            return null;
+        }
 
-
-        return new CursorLoader(getActivity(), uri, FORECAST_COLUMNS, null, null, order);
+        // Now create and return a CursorLoader that will take care of
+        // creating a Cursor for the data being displayed.
+        return new CursorLoader(
+                getActivity(),
+                intent.getData(),
+                DETAIL_COLUMNS,
+                null,
+                null,
+                null
+        );
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
 
         if (data != null && data.moveToFirst()) {
+            int imgResId = Utility.getArtResourceForWeatherCondition(data.getInt(COL_WEATHER_CONDITION_ID));
             String date = Utility.getFormattedMonthDay(getActivity(), data.getLong(COL_WEATHER_DATE));
             String day = Utility.getDayName(getActivity(), data.getLong(COL_WEATHER_DATE));
             String maxTemp = Utility.formatTemperature(
@@ -172,7 +206,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
             String pressure = getActivity().getString(R.string.format_pressure, data.getDouble(COL_WEATHER_PRESSURE));
             String descr = data.getString(COL_WEATHER_DESC);
 
-            weatherImage.setImageResource(R.drawable.ic_launcher);
+            if (imgResId != -1) weatherImage.setImageResource(imgResId);
             dateTv.setText(date);
             dayTv.setText(day);
             highTempTv.setText(maxTemp);

@@ -90,6 +90,14 @@ public class ForecastAdapter extends CursorAdapter {
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
         ViewHolder viewHolder = (ViewHolder) view.getTag();
+        int conditionId = cursor.getInt(COL_WEATHER_CONDITION_ID);
+        int imgResId = -1;
+        if (cursor.getPosition() == 0){
+            imgResId = Utility.getArtResourceForWeatherCondition(conditionId);
+        } else if (cursor.getPosition() > 0){
+            imgResId = Utility.getIconResourceForWeatherCondition(conditionId);
+        }
+
         String strDate = Utility.formatToFriendlyDate(context, cursor.getLong(COL_WEATHER_DATE));
         String strHighTemp = Utility.formatTemperature(
                 context,
@@ -101,7 +109,8 @@ public class ForecastAdapter extends CursorAdapter {
                 Utility.isMetric(context));
         String strDescr = cursor.getString(COL_WEATHER_DESC);
 
-        viewHolder.iconView.setImageResource(R.drawable.ic_launcher);
+        if (imgResId != -1) viewHolder.iconView.setImageResource(imgResId);
+
         viewHolder.dateTv.setText(strDate);
         viewHolder.descrTv.setText(strDescr);
         viewHolder.highTempTv.setText(strHighTemp);

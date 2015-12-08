@@ -37,7 +37,9 @@ import com.example.android.sunshine.app.data.WeatherContract;
  * Encapsulates fetching the forecast and displaying it as a {@link ListView} layout.
  */
 public class ForecastFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
-
+    public interface OnWeatherDayClicked {
+        public void onWeatherClicked(Uri forecastUri);
+    }
 
     private static final int FORECAST_LOADER = 0;
     static final int COL_WEATHER_ID = 0;
@@ -67,7 +69,7 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
     };
 
     private ForecastAdapter mForecastAdapter;
-    private String mLocation;
+    private OnWeatherDayClicked mWeatherDayClicked;
 
     public ForecastFragment() {
     }
@@ -101,34 +103,37 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         getLoaderManager().initLoader(FORECAST_LOADER, null, this);
+        mWeatherDayClicked = (OnWeatherDayClicked) getActivity();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-        String location = Utility.getPreferredLocation(getActivity());
-        mLocation = location;
         mForecastAdapter = new ForecastAdapter(getActivity(), null, 0);
-
 
         ListView listView = (ListView) rootView.findViewById(R.id.listview_forecast);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent detailIntent = new Intent(getActivity(), DetailActivity.class);
+
                 Cursor cursor = (Cursor) parent.getItemAtPosition(position);
+                Uri weatherUri = null;
                 if (cursor != null) {
-                    detailIntent.setData(WeatherContract.WeatherEntry.buildWeatherLocationWithDate(
+                    weatherUri = WeatherContract.WeatherEntry.buildWeatherLocationWithDate(
                             Utility.getPreferredLocation(getActivity()),
-                            cursor.getLong(COL_WEATHER_DATE)
-                    ));
+                            cursor.getLong(COL_WEATHER_DATE));
+                }
+                if (getActivity().findViewById(R.id.weather_detail_container) != null && weatherUri != null) {
+                    mWeatherDayClicked.onWeatherClicked(weatherUri);
+                } else if (weatherUri != null){
+                    Intent detailIntent = new Intent(getActivity(), DetailActivity.class);
+                    detailIntent.setData(weatherUri);
                     startActivity(detailIntent);
                 }
             }
         });
         listView.setAdapter(mForecastAdapter);
-
         return rootView;
     }
 
